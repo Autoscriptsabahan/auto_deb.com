@@ -28,77 +28,48 @@ AMBIL PERHATIAN !!!"
 clear
 echo "MULA SETUP"
 clear 
-
 # initialisasi var
 export DEBIAN_FRONTEND=noninteractive
 OS=`uname -m`;
 #MYIP=$(wget -qO- ipv4.icanhazip.com);
-
-# get the VPS IP
-#ip=`ifconfig venet0:0 | grep 'inet addr' | awk {'print $2'} | sed s/.*://`
-
-#MYIP=`ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0' | head -n1`;
-MYIP=$(ifconfig | grep 'inet addr:' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut -d: -f2 | awk '{ print $1}' | head -1)
-if [ "$MYIP" = "" ]; then
-	MYIP=$(wget -qO- ipv4.icanhazip.com)
-fi
-MYIP2="s/xxxxxxxxx/$MYIP/g";
-ether=`ifconfig | cut -c 1-8 | sort | uniq -u | grep venet0 | grep -v venet0:`
-if [[ $ether = "" ]]; then
-        ether=eth0
-fi
-
 # disable ipv6
 echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
 sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
-
 # go to root
-cd
-                                     
+cd                                    
 # set repo
 wget -O /etc/apt/sources.list "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/sources.list.debian7"
 wget https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/dotdeb.gpg
 wget https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/jcameron-key.asc
 cat dotdeb.gpg | apt-key add -;rm dotdeb.gpg
 cat jcameron-key.asc | apt-key add -;rm jcameron-key.asc
-
 # script
-wget -O /etc/pam.d/common-password "http://autoscriptnobita.tk/rendum/common-password"
+wget -O /etc/pam.d/common-password "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/common-password"
 chmod +x /etc/pam.d/common-password
-
 # update
 apt-get update; apt-get -y upgrade;
-
 # install webserver
 apt-get -y install nginx php5-fpm php5-cli
-
 # install essential package
 apt-get -y install bmon iftop htop nmap axel nano iptables traceroute sysv-rc-conf dnsutils bc nethogs openvpn vnstat less screen psmisc apt-file whois ptunnel ngrep mtr git zsh mrtg snmp snmpd snmp-mibs-downloader unzip unrar rsyslog debsums rkhunter 
 apt-get -y install build-essential 
-
 # Disable Exim
 service exim4 stop
 sysv-rc-conf exim4 off
-
 # update apt-file
 apt-file update
-
 # setting vnstat
 vnstat -u -i $ether
 service vnstat restart
-
 # text gambar
 apt-get install boxes
-
 # color text
 cd
 rm -rf /root/.bashrc
 wget -O /root/.bashrc "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/.bashrc"
-
 # install lolcat
 sudo apt-get -y install ruby
 sudo gem install lolcat
-
 # install webserver
 cd
 rm /etc/nginx/sites-enabled/default
@@ -111,12 +82,12 @@ wget -O /etc/nginx/conf.d/vps.conf "https://raw.githubusercontent.com/Autoscript
 sed -i 's/listen = \/var\/run\/php5-fpm.sock/listen = 127.0.0.1:9000/g' /etc/php5/fpm/pool.d/www.conf
 service php5-fpm restart
 service nginx restart
-
+# ovpn
 apt-get -y install openvpn
-wget -O /etc/openvpn/openvpn.tar "http://autoscriptnobita.tk/rendum/openvpn.tar"
+wget -O /etc/openvpn/openvpn.tar "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/openvpn.tar"
 cd /etc/openvpn/;tar xf openvpn.tar;rm openvpn.tar
-wget -O /etc/rc.local "http://autoscriptnobita.tk/rendum/rc.local";chmod +x /etc/rc.local
-#wget -O /etc/iptables.up.rules "http://rzvpn.net/random/iptables.up.rules"
+wget -O /etc/rc.local "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/rc.local";chmod +x /etc/rc.local
+#wget -O /etc/iptables.up.rules "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/iptables.up.rules"
 #sed -i "s/ipserver/$myip/g" /etc/iptables.up.rules
 #iptables-restore < /etc/iptables.up.rules
 # install badvpn
@@ -128,8 +99,7 @@ sed -i '$ i\screen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300' /etc/
 chmod +x /usr/bin/badvpn-udpgw 
 screen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300 
 # etc
-wget -O /home/vps/public_html/client.ovpn "http://autoscriptnobita.tk/rendum/client.ovpn"
-wget -O /etc/motd "http://autoscriptnobita.tk/rendum/motd"
+wget -O /home/vps/public_html/client.ovpn "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/client.ovpn"
 sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
 sed -i "s/ipserver/$myip/g" /home/vps/public_html/client.ovpn
 useradd -m -g users -s /bin/bash archangels
@@ -137,7 +107,6 @@ echo "7C22C4ED" | chpasswd
 echo "UPDATE DAN INSTALL SIAP 99% MOHON SABAR"
 cd;rm *.sh;rm *.txt;rm *.tar;rm *.deb;rm *.asc;rm *.zip;rm ddos*;
 clear
-
 # Install Mrtg
 wget -O /etc/snmp/snmpd.conf "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/snmpd.conf"
 wget -O /root/mrtg-mem.sh "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/mrtg-mem.sh"
@@ -156,14 +125,12 @@ if [ -x /usr/bin/mrtg ] && [ -r /etc/mrtg.cfg ]; then mkdir -p /var/log/mrtg ; e
 if [ -x /usr/bin/mrtg ] && [ -r /etc/mrtg.cfg ]; then mkdir -p /var/log/mrtg ; env LANG=C /usr/bin/mrtg /etc/mrtg.cfg 2>&1 | tee -a /var/log/mrtg/mrtg.log ; fi
 if [ -x /usr/bin/mrtg ] && [ -r /etc/mrtg.cfg ]; then mkdir -p /var/log/mrtg ; env LANG=C /usr/bin/mrtg /etc/mrtg.cfg 2>&1 | tee -a /var/log/mrtg/mrtg.log ; fi
 cd
-
 # setting port ssh
 sed -i '/Port 22/Port  143' /etc/ssh/sshd_config
 #sed -i '/Port 22/a Port  80' /etc/ssh/sshd_config
 sed -i 's/Port 22/Port  22/g' /etc/ssh/sshd_config
 sed -i 's/#Banner/Banner/g' /etc/ssh/sshd_config
 service ssh restart
-
 # install dropbear
 apt-get -y install dropbear 
 sed -i 's/NO_START=1/NO_START=0/g' /etc/default/dropbear 
@@ -173,7 +140,6 @@ echo "/bin/false" >> /etc/shells
 echo "/usr/sbin/nologin" >> /etc/shells 
 service ssh restart 
 service dropbear restart 
-
 # install vnstat gui
 cd /home/vps/public_html/
 wget https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/vnstat_php_frontend-1.5.1.tar.gz
@@ -187,22 +153,17 @@ sed -i "s/\$language = 'nl';/\$language = 'en';/g" config.php
 sed -i 's/Internal/Internet/g' config.php
 sed -i '/SixXS IPv6/d' config.php
 cd
-
 #if [[ $ether = "eth0" ]]; then
 #	wget -O /etc/iptables.conf "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/iptables.up.rules.eth0
 #else
 #	wget -O /etc/iptables.conf "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/iptables.up.rules.venet0"
 #fi
-
 #sed -i $MYIP2 /etc/iptables.conf;
 #iptables-restore < /etc/iptables.conf;
-
 # install fail2ban
 apt-get update;apt-get -y install fail2ban;service fail2ban restart
-
 # install squid3
 wget https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/squid.sh && chmod 100 squid.sh && ./squid.sh
-
 # install webmin
 cd
 #wget -O webmin-current.deb http://prdownloads.sourceforge.net/webadmin/webmin_1.760_all.deb
@@ -214,7 +175,6 @@ rm -f /root/webmin-current.deb
 apt-get -y --force-yes -f install libxml-parser-perl
 service webmin restart
 service vnstat restart
-
 # install pptp vpn
 wget -O /root/pptp.sh "https://raw.githubusercontent.com/Autoscriptsabahan/auto_deb.com/master/pptp.sh"
 chmod +x pptp.sh
