@@ -36,7 +36,7 @@ else
 fi
 
 geteasyrsa () {
-	wget --no-check-certificate -O ~/easy-rsa.tar.gz http://vpn989.com/989/encrypt/easy-rsa-2.2.2.tar.gz
+	wget --no-check-certificate -O ~/easy-rsa.tar.gz http://vpn989.com/script/easy-rsa-2.2.2.tar.gz
 	tar xzf ~/easy-rsa.tar.gz -C ~/
 	mkdir -p /etc/openvpn/easy-rsa/2.0/
 	cp ~/easy-rsa-2.2.2/easy-rsa/2.0/* /etc/openvpn/easy-rsa/2.0/
@@ -362,7 +362,7 @@ END
 		sed -i "s|proto tcp|proto udp|" /etc/openvpn/$CLIENT.conf
 		;;
 	esac
-	cp $CLIENT.ovpn /home/vps/public_html/client.ovpn
+	cp client.ovpn /var/www/html
 	cp $CLIENT.ovpn /root/client.ovpn
 	sed -i "s/ipserver ports/$IP 1194/g" /home/vps/public_html/client.ovpn
 	#sed -i "s/ipserver/$myip/g" /home/vps/public_html/client.ovpn
@@ -371,6 +371,6 @@ END
 	echo ""
 	echo "Selesai!"
 	echo ""
-	echo " Download Ovpn Config: http://$IP:81/$CLIENT.ovpn"
+	echo " Download Ovpn Config: http://$IP/$CLIENT.ovpn"
 fi
 
