@@ -1,0 +1,318 @@
+
+# disable se linux
+echo 0 > /selinux/enforce
+sed -i 's/SELINUX=enforcing/SELINUX=disable/g'  /etc/sysconfig/selinux
+
+# set locale
+sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
+service sshd restart
+
+# disable ipv6
+echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
+sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.d/rc.local
+
+#Add DNS Server ipv4
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+sed -i '$ i\echo "nameserver 8.8.8.8" > /etc/resolv.conf' /etc/rc.local
+sed -i '$ i\echo "nameserver 8.8.4.4" >> /etc/resolv.conf' /etc/rc.local
+sed -i '$ i\echo "nameserver 8.8.8.8" > /etc/resolv.conf'  /etc/rc.d/rc.local
+sed -i '$ i\echo "nameserver 8.8.4.4" >> /etc/resolv.conf'  /etc/rc.d/rc.local
+
+# install wget and curl
+yum -y install wget curl
+
+# setting repo
+rpm -Uvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-7.noarch.rpm
+rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+#rpm -Uvh http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el7.rf.x86_64.rpm
+
+
+sed -i -e "/^\[remi\]/,/^\[.*\]/ s|^\(enabled[ \t]*=[ \t]*0\\)|enabled=1|" /etc/yum.repos.d/remi.repo
+rm -f *.rpm
+
+# remove unused
+yum -y remove sendmail;
+yum -y remove httpd;
+yum -y remove cyrus-sasl
+
+# update
+yum -y update
+
+# install webserver
+yum -y install nginx php-fpm php-cli
+service nginx restart
+service php-fpm restart
+chkconfig nginx on
+chkconfig php-fpm on
+
+# install essential package
+yum -y install wondershaper rrdtool screen iftop htop nmap bc nethogs openvpn vnstat ngrep mtr git zsh mrtg unrar rsyslog rkhunter mrtg net-snmp net-snmp-utils expect nano bind-utils
+yum -y groupinstall 'Development Tools'
+yum -y install cmake
+
+yum -y install axel sslh ptunnel unrar
+
+# matiin exim
+service exim stop
+chkconfig exim off
+
+# setting vnstat
+vnstat -u -i eth0
+echo "MAILTO=root" > /etc/cron.d/vnstat
+echo "*/5 * * * * root /usr/sbin/vnstat.cron" >> /etc/cron.d/vnstat
+service vnstat restart
+chkconfig vnstat on
+
+# install screenfetch
+cd
+wget -O /usr/bin/screenfetch "http://script.hostingtermurah.net/repo/screenfetch"
+chmod +x /usr/bin/screenfetch
+echo "clear" >> .bash_profile
+echo "screenfetch" >> .bash_profile
+
+# install webserver
+cd
+yum -y install nginx
+wget -O /etc/nginx/nginx.conf "http://borneobesthosting.me/autoscript/premium-debian/nginx.conf"
+sed -i 's/www-data/nginx/g' /etc/nginx/nginx.conf
+mkdir -p /home/vps/public_html
+echo "<pre>ShienIkiru server</pre>" > /home/vps/public_html/index.html
+echo "<?php phpinfo(); ?>" > /home/vps/public_html/info.php
+rm -f /etc/nginx/conf.d/*
+wget -O /etc/nginx/conf.d/vps.conf "http://borneobesthosting.me/autoscript/premium-debian/vps.conf"
+sed -i 's/apache/nginx/g' /etc/php-fpm.d/www.conf
+chmod -R +rx /home/vps
+service php-fpm restart
+service nginx restart
+
+# setting port ssh
+echo "Port 143" >> /etc/ssh/sshd_config
+echo "Port 80" >> /etc/ssh/sshd_config
+echo "Port  22" >> /etc/ssh/sshd_config
+service sshd restart
+chkconfig sshd on
+
+# install dropbear
+yum -y install dropbear
+echo "OPTIONS=\"-p 109 -p 110 -p 443\"" > /etc/sysconfig/dropbear
+echo "/bin/false" >> /etc/shells
+service dropbear restart
+chkconfig dropbear on
+
+# https://raw.githubusercontent.com/nauval2007/centos/master/autoinstall.sh
+# install openvpn
+wget -O /etc/openvpn/openvpn.tar "https://raw.githubusercontent.com/nauval2007/centos/master/openvpn-debian.tar"
+cd /etc/openvpn/
+tar xf openvpn.tar
+wget -O /etc/openvpn/1194.conf "https://raw.githubusercontent.com/nauval2007/centos/master/1194.conf"
+service openvpn restart
+sysctl -w net.ipv4.ip_forward=1
+sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf
+wget -O /etc/iptables.up.rules "https://raw.githubusercontent.com/nauval2007/centos/master/iptables.up.rules"
+sed -i '$ i\iptables-restore < /etc/iptables.up.rules' /etc/rc.local
+sed -i $MYIP2 /etc/iptables.up.rules;
+iptables-restore < /etc/iptables.up.rules
+service openvpn restart
+
+# configure openvpn client config
+cd /etc/openvpn/
+wget -O /etc/openvpn/1194-client.ovpn "https://raw.githubusercontent.com/nauval2007/centos/master/1194-client.conf"
+sed -i $MYIP2 /etc/openvpn/1194-client.ovpn;
+PASS=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 15 | head -n 1`;
+useradd -M -s /bin/false shien
+echo "c-mp3nk:$PASS" | chpasswd
+echo "username" > pass.txt
+echo "password" >> pass.txt
+tar cf client.tar 1194-client.ovpn pass.txt
+cp client.tar /home/vps/public_html/
+cd
+
+# install badvpn
+wget -O /usr/bin/badvpn-udpgw "https://raw.githubusercontent.com/nauval2007/centos/master/badvpn-udpgw"
+if [ "$OS" == "x86_64" ]; then
+  wget -O /usr/bin/badvpn-udpgw "https://raw.githubusercontent.com/nauval2007/centos/master/badvpn-udpgw64"
+fi
+sed -i '$ i\screen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300' /etc/rc.local
+chmod +x /usr/bin/badvpn-udpgw
+screen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300
+
+# set ipv4 forward
+sysctl -w net.ipv4.ip_forward=1
+sed -i 's|#net.ipv4.ip_forward=1|net.ipv4.ip_forward=1|' /etc/sysctl.conf
+sed -i 's|net.ipv4.ip_forward =0|net.ipv4.ip_forward=1|' /etc/sysctl.conf
+echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# install fail2ban
+yum -y install fail2ban
+service fail2ban restart
+chkconfig fail2ban on
+
+# install squid
+yum -y install squid
+cat > /etc/squid/squid.conf <<-END
+acl localhost src 127.0.0.1/32 ::1
+acl to_localhost dst 127.0.0.0/8 0.0.0.0/32 ::1
+acl localnet src 10.0.0.0/8
+acl localnet src 172.16.0.0/12
+acl localnet src 192.168.0.0/16
+acl localnet src fc00::/7
+acl localnet src fe80::/10
+acl SSL_ports port 443
+acl Safe_ports port 80
+acl Safe_ports port 21
+acl Safe_ports port 443
+acl Safe_ports port 70
+acl Safe_ports port 210
+acl Safe_ports port 1025-65535
+acl Safe_ports port 280
+acl Safe_ports port 488
+acl Safe_ports port 591
+acl Safe_ports port 777
+acl CONNECT method CONNECT
+acl SSH dst xxxxxxxxx-xxxxxxxxx/32
+http_access allow SSH
+http_access allow manager localhost
+http_access deny manager
+http_access allow localnet
+http_access allow localhost
+http_access deny all
+http_port 8080
+http_port 8000
+http_port 80
+http_port 3128
+hierarchy_stoplist cgi-bin ?
+coredump_dir /var/spool/squid
+refresh_pattern ^ftp: 1440 20% 10080
+refresh_pattern ^gopher: 1440 0% 1440
+refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
+refresh_pattern . 0 20% 4320
+visible_hostname Proxy.HostingTermurah.net
+END
+sed -i $MYIP2 /etc/squid/squid.conf;
+service squid restart
+chkconfig squid on
+
+# install webmin
+cd
+wget "http://script.hostingtermurah.net/repo/webmin-1.801-1.noarch.rpm"
+yum -y install perl perl-Net-SSLeay openssl perl-IO-Tty
+rpm -i webmin-1.801-1.noarch.rpm;
+rm webmin-1.801-1.noarch.rpm
+sed -i 's/ssl=1/ssl=0/g' /etc/webmin/miniserv.conf
+service webmin restart
+chkconfig webmin on
+
+
+# downlaod script
+cd
+
+cd
+wget -O speedtest_cli.py "https://raw.githubusercontent.com/nauval2007/centos/master/speedtest_cli.py"
+wget -O bench-network.sh "https://raw.githubusercontent.com/nauval2007/centos/master/bench-network.sh"
+wget -O ps_mem.py "https://raw.githubusercontent.com/nauval2007/centos/master/ps_mem.py"
+wget -O limit.sh "https://raw.githubusercontent.com/nauval2007/centos/master/limit.sh"
+wget -O dropmon "https://raw.githubusercontent.com/nauval2007/centos/master/dropmon"
+wget -O userlogin.sh "https://raw.githubusercontent.com/nauval2007/centos/master/userlogin.sh"
+wget -O userexpired.sh "https://raw.githubusercontent.com/nauval2007/centos/master/userexpired.sh"
+wget -O userlimit.sh "https://raw.githubusercontent.com/nauval2007/centos/master/userlimit.sh"
+echo "0 0 * * * root /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 5 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 10 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 15 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 20 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 25 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 30 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 35 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 40 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 45 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 50 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root sleep 55 /root/userexpired.sh" > /etc/cron.d/userexpired
+echo "0 0 * * * root /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 5 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 10 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 15 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 20 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 25 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 30 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 35 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 40 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 45 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 50 /root/userlimit.sh" > /etc/cron.d/userlimit
+echo "0 0 * * * root sleep 55 /root/userlimit.sh" > /etc/cron.d/userlimit
+sed -i '$ i\screen -AmdS limit /root/limit.sh' /etc/rc.local
+chmod +x bench-network.sh
+chmod +x speedtest_cli.py
+chmod +x ps_mem.py
+chmod +x userlogin.sh
+chmod +x userexpired.sh
+chmod +x userlimit.sh
+chmod +x limit.sh
+chmod +x dropmon
+
+# finishing
+chown -R www-data:www-data /home/vps/public_html
+service nginx start
+service php-fpm start
+service vnstat restart
+service openvpn restart
+service snmpd restart
+service ssh restart
+service dropbear restart
+service fail2ban restart
+service squid3 stop
+service webmin restart
+rm -rf ~/.bash_history && history -c
+echo "unset HISTFILE" >> /etc/profile
+
+# info
+clear
+echo ""  | tee -a log-install.txt
+echo "AUTOSCRIPT INCLUDES" | tee log-install.txt
+echo "===============================================" | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "Service"  | tee -a log-install.txt
+echo "-------"  | tee -a log-install.txt
+echo "OpenVPN  : TCP 1194 (client config : http://$MYIP:81/client.tar)"  | tee -a log-install.txt
+echo "OpenSSH  : 22, 80, 143"  | tee -a log-install.txt
+echo "Dropbear : 109, 110, 443"  | tee -a log-install.txt
+echo "Squid3   : 8080 (limit to IP SSH)"  | tee -a log-install.txt
+echo "badvpn   : badvpn-udpgw port 7300"  | tee -a log-install.txt
+echo "nginx    : 81"  | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "Tools"  | tee -a log-install.txt
+echo "-----"  | tee -a log-install.txt
+echo "axel"  | tee -a log-install.txt
+echo "bmon"  | tee -a log-install.txt
+echo "htop"  | tee -a log-install.txt
+echo "iftop"  | tee -a log-install.txt
+echo "mtr"  | tee -a log-install.txt
+echo "nethogs"  | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "Script"  | tee -a log-install.txt
+echo "------"  | tee -a log-install.txt
+echo "screenfetch"  | tee -a log-install.txt
+echo "./ps_mem.py"  | tee -a log-install.txt
+echo "./speedtest_cli.py --share"  | tee -a log-install.txt
+echo "./bench-network.sh"  | tee -a log-install.txt
+echo "./user-login.sh" | tee -a log-install.txt
+echo "./user-expire.sh" | tee -a log-install.txt
+echo "./user-limit.sh 2" | tee -a log-install.txt
+echo "sh dropmon [port] contoh: ./dropmon.sh 443" | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "Fitur lain"  | tee -a log-install.txt
+echo "----------"  | tee -a log-install.txt
+echo "Webmin   : https://$MYIP:10000/"  | tee -a log-install.txt
+echo "vnstat   : http://$MYIP:81/vnstat/"  | tee -a log-install.txt
+echo "MRTG     : http://$MYIP:81/mrtg/"  | tee -a log-install.txt
+echo "Timezone : Asia/Jakarta"  | tee -a log-install.txt
+echo "Fail2Ban : [on]"  | tee -a log-install.txt
+echo "IPv6     : [off]"  | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "Log Installasi --> /root/log-install.txt"  | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "SILAHKAN REBOOT VPS ANDA"  | tee -a log-install.txt
+echo ""  | tee -a log-install.txt
+echo "==============================================="  | tee -a log-install.txt
